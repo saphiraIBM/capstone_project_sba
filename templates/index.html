@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mt-5">Welcome to my WebApp</h1>
+<h2>AI Workflow capstone project</h2>
+<br>Saphira Baralonga</br>
+<br>Last updated: 26/01/2020</br>
+
+<br>Part 3: Build a draft version of an API with train, predict, and logfile endpoints.</br>
+<br>To ready your model for deployment you will be required to prepare you model in a way that the Flask API can both train and predict.</br>
+<br>
+<h3>Assignment review criteria</h3>
+<ul>
+<li>Are there unit tests for the API?</li>
+	<p style="color:blue">
+	<i>Yes</i>
+<a class="nav-link" href="{{ url_for('code') }}">ApiTests.py</a><p>
+
+<li>Are there unit tests for the model?</li>
+	<p style="color:blue">
+	<i>Yes</i></p><br>
+<p><a class="nav-link" href="{{ url_for('code') }}">ApiTests.py</a><p>
+
+<li>Are there unit tests for the logging?</li>
+	<p style="color:blue">
+	<i>def test_04_logs(self):<br>
+                
+        file_name = 'train-test.csv'<br>
+        request_json = {'file':'train-test.csv'}<br>
+        r = requests.get('http://127.0.0.1:{}/logs/{}'.format(port, file_name))<br>
+
+        with open(file_name, 'wb') as f:<br>
+            f.write(r.content)<br>
+        
+        self.assertTrue(os.path.exists(file_name))<br></i></p>
+
+<li>Can all of the unit tests be run with a single script and do all of the unit tests pass?</li>
+	<p style="color:blue">
+	<i>Yes</i></p><br>
+<p><a class="nav-link" href="{{ url_for('code') }}">ApiTests.py</a><p>
+
+<li>Is there a mechanism to monitor performance?</li>
+p style="color:blue">
+	<i>Not yet</i></p><br>
+
+
+<li>Was there an attempt to isolate the read/write unit tests from production models and logs?</li>
+	<p style="color:blue"><i>
+	read/write unit tests in 'Run-tests.py' and 'ApiTests.py' in the unittests folder<br>
+    production models in the models folder<br>
+	logs in the logs folder<br>
+    </i></p>
+
+<li>Does the API work as expected? For example, can you get predictions for a specific country as well as for all countries combined?</li>
+	p style="color:blue">
+	<i>Yes</i></p><br>
+	
+	<p style="color:blue"><i>
+	## test predict<br>
+    print("\nPREDICTING MODEL FOR ALL")<br>
+    country='all'<br>
+    year='2018'<br>
+    month='01'<br>
+    day='05'<br>
+    result = model_predict(country,year,month,day)<br>
+    print(result)<br><br>
+	
+	## test predict 2<br>
+    print("\nPREDICTING MODEL FOR UK")<br>
+    country='united_kingdom'<br>
+    year='2018'<br>
+    month='01'<br>
+    day='05'<br>
+    result = model_predict(country,year,month,day)<br>
+    print(result)<br>
+	</i></p>
+
+<li>Does the data ingestion exists as a function or script to facilitate automation?</li>
+	<p style="color:blue">
+	<i>Yes</i></p><br>
+<p><a class="nav-link" href="{{ url_for('code') }}">capsone_project_part1.py</a><p>
+
+<li>Were multiple models compared?</li>
+	<p style="color:blue"><i>
+	<u>Extract of 'model_sba_17122020.py' output</u><br><br>
+	TRAINING MODELS:<b> RANDOM FOREST MODEL</b><br>
+		{'rf__criterion': 'mse', 'rf__n_estimators': 15}<br>
+		0.970598235832109<br>
+		eval_rmse: 219547.0<br>
+	END OF TRAINING MODELS: RANDOM FOREST MODEL<br><br>
+
+	TRAINING MODELS:<b> BAGGING MODEL</b><br>
+		{'bag__n_estimators': 25}<br>
+		-0.05637626493398784<br>
+		eval_rmse: 1130438.0<br>
+	END OF TRAINING MODELS: BAGGING MODEL<br>
+	</i></p>
+
+
+<li>Did the EDA investigation use visualizations?</li>
+	<p><a href="./capstone_project_par1.pptx" target="_blank">capstone_project_par1.pptx</a></p>
+
+<li>Is everything containerized within a working Docker image?</li>
+	<p style="color:blue">
+	<i>Yes</i></p>
+
+<li>Did they use a visualization to compare their model to the baseline model?</li>
+	<p style="color:blue">
+	<i>no</i></p>
+<ul>
+<br><br><br><br><br><br>
+{% endblock %}
+
+

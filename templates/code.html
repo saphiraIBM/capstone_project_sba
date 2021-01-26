@@ -1,0 +1,289 @@
+
+<!-- extends from base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<br>
+<p>
+<h3>Python code</h3>
+</p>
+
+
+<div class="jumbotron">
+ <p class="lead"></p>
+
+<h3>ApiTests.py</h3>
+<br>
+#!/usr/bin/env python<br>
+
+import sys<br>
+import os<br>
+import unittest<br>
+import requests<br>
+import re<br>
+from ast import literal_eval<br>
+import numpy as np<br>
+
+port = 8080<br>
+
+try:<br>
+    requests.post('http://127.0.0.1:{}/predict'.format(port))<br>
+    server_available = True<br>
+except:<br>
+    server_available = False<br><br>
+    
+## test class for the main window function<br>
+class ApiTest(unittest.TestCase):<br>
+    """    test the essential functionality    """<br>
+
+    @unittest.skipUnless(server_available, "local server is not running")<br>
+    <b>def test_01_train(self):</b><br>
+        """        test the train functionality        """<br>
+               
+        request_json = {'mode':'test'}<br>
+        r = requests.post('http://127.0.0.1:{}/train'.format(port), json=request_json)<br>
+        train_complete = re.sub("\W+", "", r.text)<br>
+        self.assertEqual(train_complete, 'true')<br><br>
+        
+        
+    @unittest.skipUnless(server_available, "local server is not running")<br>
+    <b>def test_02_predict_empty(self):</b><br>
+        """        ensure appropriate failure types        """<br><br>
+        
+        ## provide no data at all <br>
+        r = requests.post('http://127.0.0.1:{}/predict'.format(port))<br>
+        self.assertEqual(re.sub('\n|"', '', r.text), "[]")<br><br>
+
+        ## provide improperly formatted data<br>
+        r = requests.post('http://127.0.0.1:{}/predict'.format(port), json={"key":"value"})  <br>   
+        self.assertEqual(re.sub('\n|"', '', r.text),"[]")<br><br>
+        
+        
+    @unittest.skipUnless(server_available,"local server is not running")<br>
+    <b>def test_03_predict(self):</b><br>
+        """        test the predict functionality        """<br><br>
+        
+        query_data = {'country': 'all',<br>
+                      'year': '2018' ,<br>
+                      'month': '01',<br>
+                      'day': '05'<br>
+        }<br>
+        
+        query_type = 'dict'<br>
+        request_json = {'query':query_data, 'type':query_type, 'mode':'test'}<br><br>
+
+        r = requests.post('http://127.0.0.1:{}/predict'.format(port), json=request_json)<br>
+        response = literal_eval("\'''" + r.text + "\'''")<br>
+        #response = eval(r.text)<br>
+        print("response: {}".format(response))<br>
+        #for p in response['y_pred']:<br>
+        #    self.assertTrue(p in [0.0, 1.0])<br><br>
+           
+        
+
+    @unittest.skipUnless(server_available, "local server is not running")<br>
+    <b>def test_04_logs(self):</b><br>
+        """        test the log functionality        """<br>
+        
+        file_name = 'train-test.csv'<br>
+        request_json = {'file':'train-test.csv'}<br>
+        r = requests.get('http://127.0.0.1:{}/logs/{}'.format(port, file_name))<br><br>
+
+        with open(file_name, 'wb') as f:<br>
+            f.write(r.content)<br><br>
+        
+        self.assertTrue(os.path.exists(file_name))<br><br>
+      
+        
+### Run the tests<br>
+if __name__ == '__main__':<br>
+    unittest.main()<br>
+
+</div>
+
+
+<div class="jumbotron">
+ <p class="lead"></p>
+
+<h3>capsone_project_part1.pyn</h3>
+<br>
+#!/usr/bin/env python
+"""
+Runs the functions for the final case study solution
+"""
+
+import os
+import sys
+import re
+import shutil
+import time
+import pickle
+from collections import defaultdict
+from datetime import datetime
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
+
+import seaborn as sns
+##################################################################################
+## Data visualisation settings
+##################################################################################
+plt.style.use('seaborn')
+
+#%matplotlib inline
+
+SMALL_SIZE = 4
+MEDIUM_SIZE = 5
+LARGE_SIZE = 6
+
+#plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+#plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=SMALL_SIZE)     # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=SMALL_SIZE)   # fontsize of the figure title
+
+
+#fig = plt.figure()
+#ax = fig.add_axes([0,0,1,1])
+# Set up the matplotlib figure
+f, axs = plt.subplots(3,figsize=(30, 10))
+
+##################################################################################
+
+
+from solution_guidance.cslib import fetch_data,convert_to_ts,fetch_ts,engineer_features
+from capstone_project_sba_lib.capstone_project_sba_lib import print_data_summary
+
+COLORS = ["darkorange","royalblue","slategrey"]
+
+if __name__ == "__main__":
+    run_start = time.time() 
+    data_dir = os.path.join("data","cs-train")
+    print("...fetching data")
+
+    ts_all = fetch_ts(data_dir,clean=False)
+    #ts_all = fetch_ts(data_dir,clean=True)
+    
+    m, s = divmod(time.time()-run_start,60)
+    h, m = divmod(m, 60)
+    print("... load time:", "%d:%02d:%02d"%(h, m, s))
+    
+    print("{}\nDATA LOADED (number of lines, number of columns)\n{}".format("-"*35,"-"*35))
+    for key,item in ts_all.items():
+        print(key,item.shape)
+        
+    data_ori = pd.DataFrame()
+    engineer_feat = pd.DataFrame()
+    
+    for country,df in ts_all.items():
+        #if country in ['eire','germany','portugal']:
+        #if country in ['eire','france','germany','portugal','netherlands','spain']:
+        if country not in ['all']:
+        #if country in ['all','united_kingdom']:
+            tmp = df
+            tmp['country'] = country
+            data_ori = data_ori.append(tmp)
+                        
+            X,y,dates = engineer_features(df)
+            X['country'] = country
+            X['dates'] = dates
+            X['target_revenue'] = y
+            '''print(X.shape)
+            print (X.head(n=5))
+            print (X.tail(n=5))
+            print(y.size)
+            print (y[:5])
+            print (y[-5:])'''
+            engineer_feat = engineer_feat.append(X)
+    
+    data_ori.reset_index(inplace=True, drop=True) 
+    engineer_feat.reset_index(inplace=True, drop=True)
+    engineer_feat = engineer_feat[['country','dates','recent_invoices','recent_views',\
+                                   'previous_7','previous_14','previous_28','previous_70','previous_year','target_revenue']]
+                                   #,'45_days_target_revenue','2_months_target_revenue']]
+    
+    print("{}\nORIGINAL DATAFRAME\n{}".format("-"*35,"-"*35))
+    print(data_ori.shape)
+    print (data_ori.tail(n=10))
+    #print (data_ori.tail(n=10))
+    print_data_summary(data_ori)
+    
+     
+    print("{}\nENGINEER FEATURES DATAFRAME\n{}".format("-"*35,"-"*35))
+    print(engineer_feat.shape)
+    #print (engineer_feat.head(n=10))
+    print (engineer_feat.tail(n=10))
+    print_data_summary(engineer_feat)
+       
+    print("\n{}\nEXPLORATORY DATA ANALYSIS\n{}".format("-"*50,"-"*50))
+ 
+    print("\n{}\nNumber of 'days' per country\n{}".format("-"*50,"-"*50)) 
+    df_pivot = pd.pivot_table(engineer_feat, index= "country", values="dates",aggfunc='count').round(3)
+    df = df_pivot.sort_values(by='dates', ascending=False)
+    print(df)
+    
+    #ax.bar(langs,students)
+    #ax.bar(df_pivot[country].tolist(),df_pivot[dates].tolist())
+    df.plot(kind='bar',ax=axs[0],legend=False,title='Days counts')
+    #plt.show()
+    #sns.countplot(x='dates',data=engineer_feat, hue='country',ax=axs[0]).set_title("dates")
+    
+    print("\n{}\nNumber of not null 'previous_year' lines per country\n{}".format("-"*50,"-"*50)) 
+    df_pivot = pd.pivot_table(engineer_feat[engineer_feat['previous_year']!=0.0], index= "country", values="previous_year",aggfunc='count').round(3)
+    df = df_pivot.sort_values(by='previous_year', ascending=False)
+    print(df)
+    df.plot(kind='bar',ax=axs[1],legend=False,title='"previous_year" counts')
+    #plt.show()
+    
+    columns_to_show = ['previous_year','previous_28','target_revenue']
+    print("\n{}\nAverage revenue growth per country\n{}".format("-"*50,"-"*50))
+    df_pivot = pd.pivot_table(engineer_feat, index= "country", values=columns_to_show,aggfunc='mean').round(3)
+    df_pivot = df_pivot[columns_to_show] #reorder dataframe columns
+    df_pivot = df_pivot.rename(columns={'previous_year': 'next_month_previous_year', 'previous_28': 'previous_month'})
+    df = df_pivot.sort_values(by='target_revenue', ascending=False)
+    print(df)
+    
+    columns_to_show = ["recent_invoices","recent_views",'target_revenue']
+    print("\n{}\nAverage non-revenue features per country\n{}".format("-"*50,"-"*50))
+    df_pivot = pd.pivot_table(engineer_feat, index= "country", values=columns_to_show,aggfunc='mean').round(1)
+    df_pivot = df_pivot[columns_to_show]
+    df = df_pivot.sort_values(by='target_revenue', ascending=False)
+    print(df)
+    
+    #Add a column year_month to engineer feature dataframe
+    
+    tmp_df = engineer_feat
+    tmp_df = tmp_df.set_index('dates')
+  
+    #plt.figure(figsize=(10,10))
+  
+    
+    
+    
+    #CORRELATION MATRIX
+    print("\n{}\nCorrelation matrix\n{}".format("-"*50,"-"*50))
+    corr = engineer_feat[['country','dates','recent_invoices','recent_views','previous_28','previous_year','target_revenue']].corr()
+    
+    
+    #corr.style.background_gradient(cmap='coolwarm').set_precision(2)
+    #print(corr)
+    #plt.matshow(corr)
+    #df.plot(kind='scatter',ax=axs[0,2],x='recent_views',y='target_revenue',legend=False)
+    
+    sns.heatmap(corr, annot=True,ax=axs[2])
+    plt.subplots_adjust(hspace=1)
+    plt.show()
+    
+   
+   
+
+    
+	
+</div>
+
+{% endblock %}
